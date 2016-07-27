@@ -2,6 +2,18 @@ from Bio.Blast import NCBIXML
 from io import StringIO
 import subprocess
 import utilities
+import os
+def allelic(alleles, genome):
+
+    def blast_allelic(reference):
+
+        result = blast_reference_allele(reference, genome.path)
+        return parse_allelic(result)
+
+    ref = str(alleles.sequences[0].seq)
+    exact = find_exact_match(alleles.sequences, genome.sequences)
+
+    return exact or blast_allelic(ref)
 
 def find_exact_match(alleles, genome):
 
@@ -11,37 +23,35 @@ def find_exact_match(alleles, genome):
 
         for allele in alleles:
 
-            str_allele = str(contig.seq)  # as above
+            str_allele = str(allele.seq)  # as above
 
-            try:  # if exact match, return immediately 
-            
+            try:  # if exact match, return immediately
+
                 res = (str_contig.index(str_allele), str_allele,
                        allele.id, contig.id)
-                
-                return res 
-            
-            except IndexError:
+                print(allele.id)
+                return res
+
+            except ValueError:
                 pass
     else:
         return None  # to be explicit
 
 @utilities.tempdir
-def blast_reference_allele(alleles_path, genome_path, temp_dir):
+def blast_reference_allele(ref, genome_path, temp_dir):
 
     db_path = os.path.join(temp_dir, utilities.basename(genome_path))
-
     makeblastdb = ('makeblastdb', '-dbtype', 'nucl',
                    '-in', genome_path, '-out', db_path)
 
     blastn = ('blastn', '-db', db_path, '-outfmt', '5')
 
-    query = utilities.get_query(alleles_path)
+    subprocess.call(makeblastdb, stdout=subprocess.DEVNULL)
 
-    subprocess.call(makeblastdb)
-
-    return subprocess.check_output(blastn, input=query, universal_newlines=True)
+    return subprocess.check_output(blastn, input=ref, universal_newlines=True)
 
 def parse_allelic(blast_result):
-    
-    for aln in NCBIXML(StringIO(blast_result)).alignments: 
-        res = utilities.format_blast_results(aln)  
+
+    result = NCBIXML.read(StringIO(blast_result))
+    for aln in result.alignments:
+        res = utilities.format_blast_results(aln)
