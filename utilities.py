@@ -16,6 +16,7 @@ def format_blast_results(aln):
            'Mismatches': hsp.positives - hsp.identities,
            'PercentIdentity': hsp.identities / aln.length,
            'QueryAln': hsp.query,
+           'SubjAln': hsp.sbjct
            }
 
     return out
@@ -72,8 +73,12 @@ class MultiFasta(object):
 
         self.path = fasta_path
         self.sequences = self.get_sequences()
+        self.str_seqs = tuple(str(s.seq) for s in self.sequences)
 
     def get_sequences(self):
 
         with open(self.path, 'r') as f:
             return list(SeqIO.parse(f, 'fasta'))
+
+    def join_contigs(self):
+        return 'XXX'.join(self.str_seqs)
